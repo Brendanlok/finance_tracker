@@ -131,15 +131,7 @@ if (!def) {
   document.getElementById('title').textContent = def.title;
   var formEl = document.getElementById('f');
   formEl.innerHTML = def.fields.map(buildField).join('') + '<button type="submit" id="saveBtn">Save</button>';
-
-  // Temporary diagnostics line so we can see what Telegram is actually giving this page.
-  var diag = document.createElement('div');
-  diag.style.cssText = 'font-size:11px;color:var(--tg-theme-hint-color,#888);margin-top:14px;word-break:break-all';
   var tg = window.Telegram && window.Telegram.WebApp;
-  diag.textContent = 'debug: tg=' + (!!tg) + ' sendData=' + (!!(tg && tg.sendData)) +
-    ' version=' + (tg && tg.version) + ' platform=' + (tg && tg.platform) +
-    ' initDataLen=' + (tg && tg.initData ? tg.initData.length : 0);
-  formEl.appendChild(diag);
 
   formEl.addEventListener('submit', function (e) {
     e.preventDefault();
