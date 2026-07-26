@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log Entry</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--tg-theme-bg-color,#fff);color:var(--tg-theme-text-color,#000);padding:16px;margin:0}
+  h3{margin-top:0}
+  label{display:block;margin-bottom:16px;font-size:14px;font-weight:600}
+  input,select{display:block;width:100%;box-sizing:border-box;padding:10px;margin-top:6px;border-radius:8px;border:1px solid var(--tg-theme-hint-color,#ccc);font-size:16px;background:var(--tg-theme-secondary-bg-color,#f7f7f7);color:var(--tg-theme-text-color,#000)}
+  button{width:100%;padding:12px;border:none;border-radius:8px;background:var(--tg-theme-button-color,#2481cc);color:var(--tg-theme-button-text-color,#fff);font-size:16px;font-weight:600;margin-top:8px}
+  #err{color:#e53935;font-size:13px;margin-top:10px;display:none}
+</style>
+</head>
+<body>
+<h3 id="title">Add Entry</h3>
+<form id="f"></form>
+<div id="err"></div>
+<script>
+var EXPENSE_CATEGORIES = ['Aesthetics','Bike Maintenance','Car Maintenance','Car Rental/Sharing','Debt/Loan','Entertainment','Food','Gifts','Groceries','Home Maintenance','Home Moving','Home Office','Lilyn','Petrol','Public Transportation','Shopping','Subscriptions','Travel','Utilities','Other'];
+var INCOME_CATEGORIES = ['Job','Interest','Dividends','Investment','Expense Reimbursement','Side Hustle','(Tax) Refund','Other'];
+
+var FORM_DEFS = {
+  expense: { title: 'Add Expense', fields: [
+    { key: 'date', label: 'Date', type: 'date' },
+    { key: 'who', label: 'Store/Vendor', type: 'text' },
+    { key: 'amount', label: 'Amount', type: 'number' },
+    { key: 'currency', label: 'Currency', type: 'select', options: ['EUR','MYR','USD','GBP'] },
+    { key: 'category', label: 'Category', type: 'select', options: EXPENSE_CATEGORIES },
+    { key: 'notes', label: 'Notes', type: 'text', optional: true }
+  ]},
+  income: { title: 'Add Income', fields: [
+    { key: 'date', label: 'Date', type: 'date' },
+    { key: 'who', label: 'Source', type: 'text' },
+    { key: 'amount', label: 'Amount', type: 'number' },
+    { key: 'currency', label: 'Currency', type: 'select', options: ['EUR','MYR','USD','GBP'] },
+    { key: 'category', label: 'Category', type: 'select', options: INCOME_CATEGORIES },
+    { key: 'notes', label: 'Notes', type: 'text', optional: true }
+  ]},
+  kostenlos: { title: 'Add Kostenlos Item', fields: [
+    { key: 'purchaseDate', label: 'Purchase date', type: 'date' },
+    { key: 'item', label: 'Item', type: 'text' },
+    { key: 'email', label: 'Email used', type: 'text' },
+    { key: 'bank', label: 'Bank account', type: 'text' },
+    { key: 'amountPaid', label: 'Amount paid (EUR)', type: 'number' }
+  ]},
+  sneaker: { title: 'Add Sneaker', fields: [
+    { key: 'inStockDate', label: 'In-stock date', type: 'date' },
+    { key: 'item', label: 'Item', type: 'text' },
+    { key: 'size', label: 'Size (EU)', type: 'number' },
+    { key: 'boughtPlatform', label: 'Bought platform', type: 'text' },
+    { key: 'cost', label: 'Cost price (EUR)', type: 'number' }
+  ]},
+  holding_sc: { title: 'Add Holding — Scalable Capital / Trading 212', fields: [
+    { key: 'name', label: 'Name', type: 'text' },
+    { key: 'ticker', label: 'Ticker', type: 'text' },
+    { key: 'type', label: 'Type', type: 'select', options: ['Stock','ETF'] },
+    { key: 'shares', label: 'Number of shares', type: 'number' },
+    { key: 'buyPrice', label: 'Buy-in price per share (EUR)', type: 'number' }
+  ]},
+  holding_rakuten: { title: 'Add Holding — Rakuten Trade', fields: [
+    { key: 'name', label: 'Name', type: 'text' },
+    { key: 'ticker', label: 'Ticker', type: 'text' },
+    { key: 'type', label: 'Type', type: 'select', options: ['Stock','ETF'] },
+    { key: 'shares', label: 'Number of shares', type: 'number' },
+    { key: 'buyPrice', label: 'Buy-in price per share (RM)', type: 'number' }
+  ]},
+  holding_crypto: { title: 'Add Lot — Crypto.com', fields: [
+    { key: 'coin', label: 'Coin (e.g. Bitcoin)', type: 'text' },
+    { key: 'date', label: 'Purchase date', type: 'date' },
+    { key: 'qty', label: 'Quantity', type: 'number' },
+    { key: 'buyPrice', label: 'Buy-in price per coin (EUR)', type: 'number' }
+  ]},
+  holding_binance: { title: 'Add Lot — Binance', fields: [
+    { key: 'coin', label: 'Coin (e.g. Solana)', type: 'text' },
+    { key: 'date', label: 'Purchase date', type: 'date' },
+    { key: 'qty', label: 'Quantity', type: 'number' },
+    { key: 'buyPrice', label: 'Buy-in price per coin (EUR)', type: 'number' }
+  ]},
+  interest: { title: 'Add Crypto Interest', fields: [
+    { key: 'coin', label: 'Coin', type: 'select', options: ['BTC','DOT','MATIC','SOL','ADA'] },
+    { key: 'date', label: 'Payment date', type: 'date' },
+    { key: 'amount', label: 'Amount received', type: 'number' },
+    { key: 'note', label: 'Note (e.g. source)', type: 'text', optional: true }
+  ]},
+  dividend: { title: 'Add Dividend', fields: [
+    { key: 'label', label: 'Ticker / label', type: 'text' },
+    { key: 'date', label: 'Payout date', type: 'date' },
+    { key: 'amount', label: 'Amount', type: 'number' },
+    { key: 'currency', label: 'Currency', type: 'select', options: ['EUR','MYR'] }
+  ]}
+};
+
+function todayISO() {
+  var d = new Date();
+  var m = String(d.getMonth() + 1).padStart(2, '0');
+  var day = String(d.getDate()).padStart(2, '0');
+  return d.getFullYear() + '-' + m + '-' + day;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+}
+
+function buildField(f) {
+  var input;
+  if (f.type === 'select') {
+    var opts = f.options.map(function (o) { return '<option value="' + escapeHtml(o) + '">' + escapeHtml(o) + '</option>'; }).join('');
+    input = '<select data-field="' + f.key + '">' + opts + '</select>';
+  } else if (f.type === 'date') {
+    input = '<input type="date" data-field="' + f.key + '" value="' + todayISO() + '">';
+  } else if (f.type === 'number') {
+    input = '<input type="number" step="any" inputmode="decimal" data-field="' + f.key + '"' + (f.optional ? '' : ' required') + '>';
+  } else {
+    input = '<input type="text" data-field="' + f.key + '"' + (f.optional ? '' : ' required') + '>';
+  }
+  return '<label>' + escapeHtml(f.label) + (f.optional ? ' (optional)' : '') + input + '</label>';
+}
+
+var type = new URLSearchParams(window.location.search).get('type');
+var def = FORM_DEFS[type];
+var errEl = document.getElementById('err');
+
+if (!def) {
+  document.getElementById('title').textContent = 'Unknown form';
+} else {
+  document.getElementById('title').textContent = def.title;
+  var formEl = document.getElementById('f');
+  formEl.innerHTML = def.fields.map(buildField).join('') + '<button type="submit">Save</button>';
+  formEl.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!window.Telegram || !window.Telegram.WebApp || !Telegram.WebApp.sendData) {
+      errEl.textContent = 'Open this from the bot in Telegram to save.';
+      errEl.style.display = 'block';
+      return;
+    }
+    var data = { type: type };
+    document.querySelectorAll('[data-field]').forEach(function (el) { data[el.dataset.field] = el.value; });
+    Telegram.WebApp.sendData(JSON.stringify(data));
+  });
+}
+
+if (window.Telegram && window.Telegram.WebApp) {
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+}
+</script>
+</body>
+</html>
