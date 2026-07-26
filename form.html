@@ -123,22 +123,40 @@ var type = new URLSearchParams(window.location.search).get('type');
 var def = FORM_DEFS[type];
 var errEl = document.getElementById('err');
 
+function showErr(msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
+
 if (!def) {
   document.getElementById('title').textContent = 'Unknown form';
 } else {
   document.getElementById('title').textContent = def.title;
   var formEl = document.getElementById('f');
-  formEl.innerHTML = def.fields.map(buildField).join('') + '<button type="submit">Save</button>';
+  formEl.innerHTML = def.fields.map(buildField).join('') + '<button type="submit" id="saveBtn">Save</button>';
+
+  // Temporary diagnostics line so we can see what Telegram is actually giving this page.
+  var diag = document.createElement('div');
+  diag.style.cssText = 'font-size:11px;color:var(--tg-theme-hint-color,#888);margin-top:14px;word-break:break-all';
+  var tg = window.Telegram && window.Telegram.WebApp;
+  diag.textContent = 'debug: tg=' + (!!tg) + ' sendData=' + (!!(tg && tg.sendData)) +
+    ' version=' + (tg && tg.version) + ' platform=' + (tg && tg.platform) +
+    ' initDataLen=' + (tg && tg.initData ? tg.initData.length : 0);
+  formEl.appendChild(diag);
+
   formEl.addEventListener('submit', function (e) {
     e.preventDefault();
-    if (!window.Telegram || !window.Telegram.WebApp || !Telegram.WebApp.sendData) {
-      errEl.textContent = 'Open this from the bot in Telegram to save.';
-      errEl.style.display = 'block';
+    errEl.style.display = 'none';
+    if (!tg || !tg.sendData) {
+      showErr('Open this from the bot in Telegram to save.');
       return;
     }
     var data = { type: type };
     document.querySelectorAll('[data-field]').forEach(function (el) { data[el.dataset.field] = el.value; });
-    Telegram.WebApp.sendData(JSON.stringify(data));
+    document.getElementById('saveBtn').textContent = 'Saving...';
+    try {
+      tg.sendData(JSON.stringify(data));
+    } catch (err) {
+      document.getElementById('saveBtn').textContent = 'Save';
+      showErr('sendData threw: ' + (err && err.message ? err.message : String(err)));
+    }
   });
 }
 
