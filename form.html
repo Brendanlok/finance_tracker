@@ -43,8 +43,9 @@ var FORM_DEFS = {
     { key: 'purchaseDate', label: 'Purchase date', type: 'date' },
     { key: 'item', label: 'Item', type: 'text' },
     { key: 'email', label: 'Email used', type: 'text' },
-    { key: 'bank', label: 'Bank account', type: 'text' },
-    { key: 'amountPaid', label: 'Amount paid (EUR)', type: 'number' }
+    { key: 'bank', label: 'Bank account', type: 'select', options: ['Commerzbank','N26','C24','TopZins'] },
+    { key: 'amountPaid', label: 'Amount paid (EUR)', type: 'number' },
+    { key: 'link', label: 'Link', type: 'text', optional: true }
   ]},
   sneaker: { title: 'Add Sneaker', fields: [
     { key: 'inStockDate', label: 'In-stock date', type: 'date' },
