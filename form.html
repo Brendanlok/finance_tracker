@@ -54,6 +54,17 @@ var FORM_DEFS = {
     { key: 'boughtPlatform', label: 'Bought platform', type: 'text' },
     { key: 'cost', label: 'Cost price (EUR)', type: 'number' }
   ]},
+  sneaker_sold: { title: 'Sneaker Sold', fields: [
+    { key: 'inStockDate', label: 'In-stock date', type: 'date', noDefault: true },
+    { key: 'item', label: 'Item', type: 'text' },
+    { key: 'size', label: 'Size (EU)', type: 'number' },
+    { key: 'boughtPlatform', label: 'Bought platform', type: 'text' },
+    { key: 'cost', label: 'Cost price (EUR)', type: 'number' },
+    { key: 'soldDate', label: 'Sale date', type: 'date' },
+    { key: 'soldPlatform', label: 'Sold platform', type: 'text' },
+    { key: 'soldPrice', label: 'Sold price (EUR)', type: 'number' },
+    { key: 'remarks', label: 'Remarks', type: 'text', optional: true }
+  ]},
   holding_sc: { title: 'Add Holding — Scalable Capital / Trading 212', fields: [
     { key: 'name', label: 'Name', type: 'text' },
     { key: 'ticker', label: 'Ticker', type: 'text' },
@@ -111,7 +122,7 @@ function buildField(f) {
     var opts = f.options.map(function (o) { return '<option value="' + escapeHtml(o) + '">' + escapeHtml(o) + '</option>'; }).join('');
     input = '<select data-field="' + f.key + '">' + opts + '</select>';
   } else if (f.type === 'date') {
-    input = '<input type="date" data-field="' + f.key + '" value="' + todayISO() + '">';
+    input = '<input type="date" data-field="' + f.key + '" value="' + (f.noDefault ? '' : todayISO()) + '">';
   } else if (f.type === 'number') {
     input = '<input type="number" step="any" inputmode="decimal" data-field="' + f.key + '"' + (f.optional ? '' : ' required') + '>';
   } else {
@@ -132,6 +143,10 @@ if (!def) {
   document.getElementById('title').textContent = def.title;
   var formEl = document.getElementById('f');
   formEl.innerHTML = def.fields.map(buildField).join('') + '<button type="submit" id="saveBtn">Save</button>';
+  // Prefill from the URL (e.g. the sneaker-sold form arrives with the pair's current details).
+  var qs = new URLSearchParams(window.location.search);
+  document.querySelectorAll('[data-field]').forEach(function (el) { if (qs.has(el.dataset.field)) el.value = qs.get(el.dataset.field); });
+
   var tg = window.Telegram && window.Telegram.WebApp;
 
   formEl.addEventListener('submit', function (e) {
@@ -142,6 +157,7 @@ if (!def) {
       return;
     }
     var data = { type: type };
+    ['row', 'item0'].forEach(function (k) { if (qs.has(k)) data[k] = qs.get(k); });
     document.querySelectorAll('[data-field]').forEach(function (el) { data[el.dataset.field] = el.value; });
     document.getElementById('saveBtn').textContent = 'Saving...';
     try {
